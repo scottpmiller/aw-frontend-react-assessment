@@ -30,64 +30,84 @@ export const useTasks = (): TaskContextType => {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       const newTask = await taskService.addTask(taskText);
-      const updatedTasks = [...tasks, newTask];
-      
-      setTasks(updatedTasks);
-      taskService.saveTasks(updatedTasks);
+
+      // Use functional update to avoid stale state and get the updated tasks
+      let updatedTasks: Task[];
+      setTasks(currentTasks => {
+        updatedTasks = [...currentTasks, newTask];
+        return updatedTasks;
+      });
+
+      // Save to backend with the updated state (async but doesn't affect UI state)
+      await taskService.saveTasks(updatedTasks!);
     } catch (err) {
       setError('Failed to add task');
       console.error('Error adding task:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [tasks]);
+  }, []); // Remove tasks dependency
 
   const toggleTask = useCallback(async (taskId: number) => {
     try {
       setIsLoading(true);
       setError(null);
-      
-      const taskToUpdate = tasks.find(task => task.id === taskId);
-      if (!taskToUpdate) return;
 
-      const updates = await taskService.updateTask(taskId, {
-        ...taskToUpdate,
-        completed: !taskToUpdate.completed
+      // Use functional update to get current state and avoid race conditions
+      let updatedTasks: Task[];
+      setTasks(currentTasks => {
+        const taskToUpdate = currentTasks.find(task => task.id === taskId);
+        if (!taskToUpdate) return currentTasks;
+
+        // Perform the toggle operation
+        updatedTasks = currentTasks.map(task =>
+          task.id === taskId ? { ...task, completed: !task.completed, updatedAt: new Date().toISOString() } : task
+        );
+
+        return updatedTasks;
       });
 
-      const updatedTasks = tasks.map(task =>
-        task.id === taskId ? { ...task, ...updates } : task
-      );
-      
-      setTasks(updatedTasks);
-      taskService.saveTasks(updatedTasks);
+      // Save to backend with the updated state (async but doesn't affect UI state)
+      if (updatedTasks!) {
+        await taskService.saveTasks(updatedTasks);
+      }
+
+      // Call the service for any additional processing (logging/validation)
+      await taskService.updateTask(taskId, { completed: true });
     } catch (err) {
       setError('Failed to update task');
       console.error('Error updating task:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [tasks]);
+  }, []); // Remove tasks dependency
 
   const deleteTask = useCallback(async (taskId: number) => {
     try {
       setIsLoading(true);
       setError(null);
-      
+
+      // Use functional update to avoid stale state
+      let updatedTasks: Task[];
+      setTasks(currentTasks => {
+        updatedTasks = currentTasks.filter(task => task.id !== taskId);
+        return updatedTasks;
+      });
+
+      // Save to backend with the updated state (async but doesn't affect UI state)
+      await taskService.saveTasks(updatedTasks!);
+
+      // Call the service for any additional processing
       await taskService.deleteTask(taskId);
-      const updatedTasks = tasks.filter(task => task.id !== taskId);
-      
-      setTasks(updatedTasks);
-      taskService.saveTasks(updatedTasks);
     } catch (err) {
       setError('Failed to delete task');
       console.error('Error deleting task:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [tasks]);
+  }, []); // Remove tasks dependency
 
   const refreshTasks = useCallback(async () => {
     try {

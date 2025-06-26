@@ -1,7 +1,7 @@
 import React from 'react';
 import { HeaderProps } from '../types';
 
-const Header: React.FC<HeaderProps> = ({ onRefresh }) => {
+const Header: React.FC<HeaderProps> = ({ onRefresh, isLoading }) => {
   return (
     <div className="header">
       <h1>Task Management App</h1>
@@ -10,6 +10,7 @@ const Header: React.FC<HeaderProps> = ({ onRefresh }) => {
         onClick={onRefresh} 
         className="refresh-button"
         aria-label="Refresh tasks from storage"
+        disabled={isLoading}
       >
         Refresh
       </button>

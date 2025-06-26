@@ -31,7 +31,7 @@ const TaskApp = () => {
 
   return (
     <div className="app">
-      <Header onRefresh={refreshTasks} />
+      <Header onRefresh={refreshTasks} isLoading={isLoading} />
       
       <TaskForm 
         onAddTask={handleAddTask}
@@ -45,7 +45,7 @@ const TaskApp = () => {
         isLoading={isLoading}
       />
       
-      <LoadingIndicator 
+      <LoadingIndicator
         isLoading={isLoading}
         message="Processing..."
       />
