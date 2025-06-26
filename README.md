@@ -5,7 +5,7 @@ A React-based task management application for the Senior Frontend Engineer Asses
 ## Setup Instructions
 
 ### Prerequisites
-- Node.js (version 14 or higher)
+- Node.js (version 18 or higher)
 - npm or yarn
 
 ### Installation

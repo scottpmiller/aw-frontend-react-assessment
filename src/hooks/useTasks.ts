@@ -5,6 +5,9 @@ import { Task, TaskContextType } from '../types';
 export const useTasks = (): TaskContextType => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isAdding, setIsAdding] = useState<boolean>(false);
+  const [toggledTaskId, setToggledTaskId] = useState<number | null>(null);
+  const [deletingTaskId, setDeletingTaskId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Load tasks on mount
@@ -28,66 +31,80 @@ export const useTasks = (): TaskContextType => {
 
   const addTask = useCallback(async (taskText: string) => {
     try {
-      setIsLoading(true);
+      setIsAdding(true);
       setError(null);
-      
+
+      // Add the task and get the new task object
       const newTask = await taskService.addTask(taskText);
-      const updatedTasks = [...tasks, newTask];
-      
-      setTasks(updatedTasks);
-      taskService.saveTasks(updatedTasks);
+
+      // Get the latest tasks after the add operation
+      const latestTasks = await taskService.loadTasks();
+      setTasks(latestTasks);
     } catch (err) {
       setError('Failed to add task');
       console.error('Error adding task:', err);
     } finally {
-      setIsLoading(false);
+      setIsAdding(false);
     }
-  }, [tasks]);
+  }, []);
 
   const toggleTask = useCallback(async (taskId: number) => {
     try {
-      setIsLoading(true);
+      setToggledTaskId(taskId);
       setError(null);
-      
-      const taskToUpdate = tasks.find(task => task.id === taskId);
-      if (!taskToUpdate) return;
 
-      const updates = await taskService.updateTask(taskId, {
-        ...taskToUpdate,
+      // Get the current task to determine its new state
+      const currentTasks = await taskService.loadTasks();
+      const taskToUpdate = currentTasks.find(task => task.id === taskId);
+      
+      if (!taskToUpdate) {
+        throw new Error('Task not found');
+      }
+
+      // Update the task and get the latest tasks
+      const updatedTask = await taskService.updateTask(taskId, {
         completed: !taskToUpdate.completed
       });
 
-      const updatedTasks = tasks.map(task =>
-        task.id === taskId ? { ...task, ...updates } : task
-      );
-      
-      setTasks(updatedTasks);
-      taskService.saveTasks(updatedTasks);
+      // Get the latest tasks after the update and apply our change
+      const latestTasks = await taskService.loadTasks();
+      setTasks(latestTasks.map(task =>
+        task.id === taskId ? updatedTask : task
+      ));
     } catch (err) {
       setError('Failed to update task');
       console.error('Error updating task:', err);
     } finally {
-      setIsLoading(false);
+      setToggledTaskId(null);
     }
-  }, [tasks]);
+  }, []);
 
   const deleteTask = useCallback(async (taskId: number) => {
     try {
-      setIsLoading(true);
+      setDeletingTaskId(taskId);
       setError(null);
+
+      // Get the current tasks to verify the task exists
+      const currentTasks = await taskService.loadTasks();
+      const taskToDelete = currentTasks.find(task => task.id === taskId);
       
+      if (!taskToDelete) {
+        throw new Error('Task not found');
+      }
+
+      // Delete the task
       await taskService.deleteTask(taskId);
-      const updatedTasks = tasks.filter(task => task.id !== taskId);
       
-      setTasks(updatedTasks);
-      taskService.saveTasks(updatedTasks);
+      // Get the latest tasks after the delete operation
+      const latestTasks = await taskService.loadTasks();
+      setTasks(latestTasks);
     } catch (err) {
       setError('Failed to delete task');
       console.error('Error deleting task:', err);
     } finally {
-      setIsLoading(false);
+      setDeletingTaskId(null);
     }
-  }, [tasks]);
+  }, []);
 
   const refreshTasks = useCallback(async () => {
     try {
@@ -106,6 +123,9 @@ export const useTasks = (): TaskContextType => {
   return {
     tasks,
     isLoading,
+    isAdding,
+    toggledTaskId,
+    deletingTaskId,
     error,
     addTask,
     toggleTask,
