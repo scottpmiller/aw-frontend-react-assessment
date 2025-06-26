@@ -27,7 +27,7 @@ body {
   background: white;
   padding: 20px;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   margin-bottom: 20px;
 }
 
@@ -57,7 +57,8 @@ body {
 .task-list {
   background: white;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
 }
 
 .task-item {
@@ -71,9 +72,23 @@ body {
   border-bottom: none;
 }
 
+.task-item-deleting {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
 .task-checkbox {
   margin-right: 15px;
   cursor: pointer;
+}
+
+.task-checkbox-loading {
+  margin-right: 15px;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .task-text {
@@ -105,6 +120,12 @@ body {
   background-color: #c82333;
 }
 
+.delete-button-loading {
+  min-width: 70px; /* Approximate width of delete button */
+  display: flex;
+  justify-content: center;
+}
+
 .empty-state {
   text-align: center;
   padding: 40px;
@@ -125,7 +146,7 @@ body {
   background: white;
   padding: 40px;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   max-width: 500px;
 }
 
@@ -170,24 +191,43 @@ body {
 /* Loading Indicator Styles */
 .loading-indicator {
   display: flex;
-  justify-content: center;
   align-items: center;
-  padding: 20px;
-  gap: 12px;
+  justify-content: center;
+  gap: 8px;
+}
+
+.loading-indicator-small {
+  gap: 4px;
 }
 
 .loading-spinner {
-  width: 20px;
-  height: 20px;
   border: 2px solid #f3f3f3;
-  border-top: 2px solid #007bff;
+  border-top: 2px solid #3498db;
   border-radius: 50%;
+  width: 24px;
+  height: 24px;
   animation: spin 1s linear infinite;
 }
 
+.loading-spinner-small {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+}
+
+.loading-spinner-large {
+  width: 32px;
+  height: 32px;
+  border-width: 3px;
+}
+
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .loading-text {
@@ -217,7 +257,7 @@ body {
   background: white;
   padding: 40px;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   margin: 20px 0;
 }
 
@@ -270,15 +310,15 @@ body {
   .app {
     padding: 10px;
   }
-  
+
   .task-form {
     padding: 15px;
   }
-  
+
   .task-item {
     padding: 12px 15px;
   }
-  
+
   .task-text {
     font-size: 14px;
   }

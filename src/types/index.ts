@@ -9,6 +9,9 @@ export interface Task {
 export interface TaskContextType {
   tasks: Task[];
   isLoading: boolean;
+  isAdding: boolean;
+  toggledTaskId: number | null;
+  deletingTaskId: number | null;
   error: string | null;
   addTask: (taskText: string) => Promise<void>;
   toggleTask: (taskId: number) => Promise<void>;
@@ -26,7 +29,8 @@ export interface TaskItemProps {
   task: Task;
   onToggle: (taskId: number) => Promise<void>;
   onDelete: (taskId: number) => Promise<void>;
-  isLoading: boolean;
+  isToggling?: boolean;
+  isDeleting?: boolean;
 }
 
 export interface TaskListProps {
@@ -41,6 +45,7 @@ export interface HeaderProps {
 }
 
 export interface LoadingIndicatorProps {
-  isLoading: boolean;
+  isLoading?: boolean;
   message?: string;
+  size?: 'small' | 'medium' | 'large';
 }

@@ -5,7 +5,7 @@ import '@testing-library/jest-dom';
 import TaskForm from '../TaskForm';
 
 const mockProps = {
-  onAddTask: jest.fn(),
+  onAddTask: jest.fn(() => Promise.resolve()), // Ensure async
   isLoading: false
 };
 

@@ -6,6 +6,7 @@ const TaskApp = () => {
   const {
     tasks,
     isLoading,
+    isAdding,
     error,
     addTask,
     toggleTask,
@@ -16,6 +17,13 @@ const TaskApp = () => {
   const handleAddTask = async (taskText: string) => {
     await addTask(taskText);
   };
+
+  /* Determine which processing message to show based on current action */
+  let processingMessage = isAdding 
+    ? 'Adding task...'
+    : isLoading 
+      ? 'Loading tasks...' 
+      : '';
 
   if (error) {
     return (
@@ -45,10 +53,12 @@ const TaskApp = () => {
         isLoading={isLoading}
       />
       
-      <LoadingIndicator 
-        isLoading={isLoading}
-        message="Processing..."
-      />
+      {(isLoading || isAdding) && (
+        <LoadingIndicator 
+          isLoading={true}
+          message={processingMessage}
+        />
+      )}
     </div>
   );
 };

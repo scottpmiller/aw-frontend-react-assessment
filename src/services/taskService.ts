@@ -44,14 +44,23 @@ export const taskService = {
 
   // Add a new task
   async addTask(taskText: string): Promise<Task> {
+    // Validate the task text first
     const validation = validateTaskText(taskText);
     if (!validation.isValid) {
       logger.warn('Task validation failed', { taskText, error: validation.error });
       throw new Error(validation.error);
     }
 
+    // Load current tasks before we start
+    const currentTasks = await this.loadTasks();
+
+    // Apply artificial delay
     await delayPatterns.medium();
     
+    // After the delay, reload tasks to get any changes that happened during the delay
+    const latestTasks = await this.loadTasks();
+    
+    // Create the new task
     const sanitizedText = sanitizeTaskText(taskText);
     const newTask = {
       id: Date.now(),
@@ -60,25 +69,73 @@ export const taskService = {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
+
+    // Add the new task to the latest task list
+    const updatedTasks = [...latestTasks, newTask];
+    
+    // Save the updated tasks
+    await this.saveTasks(updatedTasks);
     
     logger.info('Task created', { taskId: newTask.id, text: sanitizedText });
     return newTask;
   },
 
   // Update an existing task
-  async updateTask(_taskId: number, updates: Partial<Task>): Promise<Partial<Task> & { updatedAt: string }> {
+  async updateTask(taskId: number, updates: Partial<Task>): Promise<Task> {
+    // Load current tasks to get the task to update
+    const currentTasks = await this.loadTasks();
+    const taskToUpdate = currentTasks.find(task => task.id === taskId);
+
+    if (!taskToUpdate) {
+      throw new Error('Task not found');
+    }
+
+    // Apply artificial delay
     await delayPatterns.medium();
+
+    // After the delay, reload tasks to get any changes that happened during the delay
+    const latestTasks = await this.loadTasks();
     
-    return {
+    // Create the updated task
+    const updatedTask = {
+      ...taskToUpdate,
       ...updates,
       updatedAt: new Date().toISOString()
     };
+
+    // Update the task in the latest task list
+    const updatedTasks = latestTasks.map(task =>
+      task.id === taskId ? updatedTask : task
+    );
+
+    // Save the updated tasks
+    await this.saveTasks(updatedTasks);
+
+    return updatedTask;
   },
 
   // Delete a task
-  async deleteTask(taskId: number): Promise<number> {
+  async deleteTask(taskId: number): Promise<void> {
+    // Load current tasks to verify the task exists
+    const currentTasks = await this.loadTasks();
+    const taskToDelete = currentTasks.find(task => task.id === taskId);
+
+    if (!taskToDelete) {
+      throw new Error('Task not found');
+    }
+
+    // Apply artificial delay
     await delayPatterns.short();
-    return taskId;
+
+    // After the delay, reload tasks to get any changes that happened during the delay
+    const latestTasks = await this.loadTasks();
+    
+    // Remove the task from the latest task list
+    const updatedTasks = latestTasks.filter(task => task.id !== taskId);
+
+    // Save the updated tasks
+    await this.saveTasks(updatedTasks);
+    logger.info('Task deleted', { taskId });
   },
 
   // Refresh tasks from storage
