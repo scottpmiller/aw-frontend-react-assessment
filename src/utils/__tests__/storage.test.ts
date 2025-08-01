@@ -1,4 +1,41 @@
 import { storageService, getStorageKey } from '../storage';
+import * as encryption from '../encryption';
+
+// Mock encryption module
+const mockEncryptData = jest.fn();
+const mockDecryptData = jest.fn();
+const mockGenerateChecksum = jest.fn();
+const mockValidateChecksum = jest.fn();
+
+jest.mock('../encryption', () => ({
+  encryptData: (...args: any[]) => mockEncryptData(...args),
+  decryptData: (...args: any[]) => mockDecryptData(...args),
+  generateChecksum: (...args: any[]) => mockGenerateChecksum(...args),
+  validateChecksum: (...args: any[]) => mockValidateChecksum(...args)
+}));
+
+// Mock crypto-js for consistent testing
+jest.mock('crypto-js', () => ({
+  AES: {
+    encrypt: jest.fn((data, key) => ({ toString: () => `encrypted_${data}_${key}` })),
+    decrypt: jest.fn((encryptedData, key) => ({
+      toString: jest.fn(() => {
+        // Extract original data from our mock encrypted format
+        const match = encryptedData.match(/^encrypted_(.+)_.*$/);
+        return match ? match[1] : '';
+      })
+    }))
+  },
+  enc: {
+    Utf8: {}
+  },
+  SHA256: jest.fn((data) => ({ toString: () => `checksum_${data}` })),
+  lib: {
+    WordArray: {
+      random: jest.fn(() => ({ toString: () => 'mock_encryption_key' }))
+    }
+  }
+}));
 
 // Mock localStorage
 const mockLocalStorage = (() => {
@@ -52,10 +89,33 @@ Object.defineProperty(window, 'sessionStorage', {
   writable: true
 });
 
+// Set NODE_ENV to development for consistent testing
+const originalNodeEnv = process.env.NODE_ENV;
+
 describe('storage utilities', () => {
   beforeEach(() => {
     mockLocalStorage.clear();
     mockSessionStorage.clear();
+    // Ensure development mode for console.error assertions
+    process.env.NODE_ENV = 'development';
+    
+    // Setup encryption mocks with default implementations
+    mockEncryptData.mockImplementation((data) => `encrypted_${JSON.stringify(data)}`);
+    mockDecryptData.mockImplementation((encryptedData) => {
+      const match = encryptedData.match(/^encrypted_(.+)$/);
+      return match ? JSON.parse(match[1]) : null;
+    });
+    mockGenerateChecksum.mockImplementation((data) => `checksum_${JSON.stringify(data)}`);
+    mockValidateChecksum.mockImplementation((data, checksum) => {
+      const expectedChecksum = `checksum_${JSON.stringify(data)}`;
+      return checksum === expectedChecksum;
+    });
+    
+    jest.clearAllMocks();
+  });
+
+  afterAll(() => {
+    process.env.NODE_ENV = originalNodeEnv;
   });
 
   describe('getStorageKey', () => {
@@ -136,13 +196,11 @@ describe('storage utilities', () => {
       const result = storageService.save('test', { data: 'test' });
       
       expect(result).toBe(false);
-      // In development mode, it should log the error
-      if (process.env.NODE_ENV === 'development') {
-        expect(consoleSpy).toHaveBeenCalledWith(
-          'Failed to save to localStorage:',
-          expect.any(Error)
-        );
-      }
+      // Should log the error in development mode
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Failed to save to localStorage:',
+        expect.any(Error)
+      );
       
       consoleSpy.mockRestore();
       mockLocalStorage.setItem = originalSetItem;
@@ -204,12 +262,11 @@ describe('storage utilities', () => {
       const result = storageService.load('test');
       
       expect(result).toBeNull();
-      if (process.env.NODE_ENV === 'development') {
-        expect(consoleSpy).toHaveBeenCalledWith(
-          'Failed to load from localStorage:',
-          expect.any(Error)
-        );
-      }
+      // Should log the error in development mode
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Failed to load from localStorage:',
+        expect.any(Error)
+      );
       
       consoleSpy.mockRestore();
     });
@@ -224,6 +281,7 @@ describe('storage utilities', () => {
       const result = storageService.load('test');
       
       expect(result).toBeNull();
+      // Should log the error in development mode
       expect(consoleSpy).toHaveBeenCalledWith(
         'Failed to load from localStorage:',
         expect.any(Error)
@@ -257,6 +315,7 @@ describe('storage utilities', () => {
       const result = storageService.loadLegacy('legacy');
       
       expect(result).toBeNull();
+      // Should log the error in development mode
       expect(consoleSpy).toHaveBeenCalledWith(
         'Failed to load legacy data from localStorage:',
         expect.any(Error)
@@ -289,6 +348,7 @@ describe('storage utilities', () => {
       const result = storageService.clear('test');
       
       expect(result).toBe(false);
+      // Should log the error in development mode
       expect(consoleSpy).toHaveBeenCalledWith(
         'Failed to clear localStorage:',
         expect.any(Error)
@@ -351,7 +411,14 @@ describe('storage utilities', () => {
       // Verify the key format (should not include date or timezone)
       const expectedKey = 'task-app_tasks';
       const store = mockLocalStorage._getStore();
-      expect(store[expectedKey]).toBe(JSON.stringify(testData));
+      
+      // Verify encrypted data structure exists
+      const storedValue = store[expectedKey];
+      expect(storedValue).toBeDefined();
+      const parsedValue = JSON.parse(storedValue);
+      expect(parsedValue).toHaveProperty('data');
+      expect(parsedValue).toHaveProperty('checksum');
+      expect(parsedValue).toHaveProperty('timestamp');
       
       // Data should be retrievable with the same key
       const retrievedData = storageService.load('tasks');
