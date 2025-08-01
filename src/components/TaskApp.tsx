@@ -5,7 +5,7 @@ import { Header, TaskForm, TaskList, LoadingIndicator } from './index';
 const TaskApp = () => {
   const {
     tasks,
-    isLoading,
+	isBusy,
     error,
     addTask,
     toggleTask,
@@ -35,18 +35,18 @@ const TaskApp = () => {
       
       <TaskForm 
         onAddTask={handleAddTask}
-        isLoading={isLoading}
+        isLoading={isBusy}
       />
       
       <TaskList
         tasks={tasks}
         onToggleTask={toggleTask}
         onDeleteTask={deleteTask}
-        isLoading={isLoading}
+        isLoading={isBusy}
       />
       
       <LoadingIndicator 
-        isLoading={isLoading}
+        isLoading={isBusy}
         message="Processing..."
       />
     </div>

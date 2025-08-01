@@ -2,10 +2,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { taskService } from '../services/taskService';
 import { Task, TaskContextType } from '../types';
 
+let taskQueue = Promise.resolve();
+
 export const useTasks = (): TaskContextType => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+	const [isQueueBusy, setIsQueueBusy] = useState(false);
+	const isBusy = isLoading || isQueueBusy;
 
   // Load tasks on mount
   useEffect(() => {
@@ -26,70 +31,87 @@ export const useTasks = (): TaskContextType => {
     }
   }, []);
 
-  const addTask = useCallback(async (taskText: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      const newTask = await taskService.addTask(taskText);
-      const updatedTasks = [...tasks, newTask];
-      
-      setTasks(updatedTasks);
-      taskService.saveTasks(updatedTasks);
-    } catch (err) {
-      setError('Failed to add task');
-      console.error('Error adding task:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [tasks]);
+	const addTask = useCallback((taskText: string) => {
+		taskQueue = taskQueue.then(async () => {
+			setIsQueueBusy(true);
+			setIsLoading(true);
+			setError(null);
+			try {
+				const newTask = await taskService.addTask(taskText);
+				setTasks(prev => {
+					const updatedTasks = [...prev, newTask];
+					taskService.saveTasks(updatedTasks);
+					return updatedTasks;
+				});
+			} catch (err) {
+				console.error('Error adding task:', err);
+				setError('Failed to add task');
+			} finally {
+				setIsLoading(false);
+				setIsQueueBusy(false);
+			}
+		});
 
-  const toggleTask = useCallback(async (taskId: number) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      const taskToUpdate = tasks.find(task => task.id === taskId);
-      if (!taskToUpdate) return;
+		return taskQueue;
+	}, []);
 
-      const updates = await taskService.updateTask(taskId, {
-        ...taskToUpdate,
-        completed: !taskToUpdate.completed
-      });
+	const toggleTask = useCallback((taskId: number) => {
+		taskQueue = taskQueue.then(async () => {
+			setIsQueueBusy(true);
+			setIsLoading(true);
+			setError(null);
+			try {
+				setTasks(prev => {
+					const taskToUpdate = prev.find(t => t.id === taskId);
+					if (!taskToUpdate) return prev;
 
-      const updatedTasks = tasks.map(task =>
-        task.id === taskId ? { ...task, ...updates } : task
-      );
-      
-      setTasks(updatedTasks);
-      taskService.saveTasks(updatedTasks);
-    } catch (err) {
-      setError('Failed to update task');
-      console.error('Error updating task:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [tasks]);
+					const updatedTask = {
+						...taskToUpdate,
+						completed: !taskToUpdate.completed,
+						updatedAt: new Date().toISOString()
+					};
 
-  const deleteTask = useCallback(async (taskId: number) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      await taskService.deleteTask(taskId);
-      const updatedTasks = tasks.filter(task => task.id !== taskId);
-      
-      setTasks(updatedTasks);
-      taskService.saveTasks(updatedTasks);
-    } catch (err) {
-      setError('Failed to delete task');
-      console.error('Error deleting task:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [tasks]);
+					const updatedTasks = prev.map(t => t.id === taskId ? updatedTask : t);
+					taskService.saveTasks(updatedTasks);
+					return updatedTasks;
+				});
+			} catch (err) {
+				console.error('Error toggling task:', err);
+				setError('Failed to update task');
+			} finally {
+				setIsLoading(false);
+				setIsQueueBusy(false);
+			}
+		});
 
-  const refreshTasks = useCallback(async () => {
+		return taskQueue;
+	}, []);
+
+	const deleteTask = useCallback((taskId: number) => {
+		taskQueue = taskQueue.then(async () => {
+			setIsQueueBusy(true);
+			setIsLoading(true);
+			setError(null);
+			try {
+				await taskService.deleteTask(taskId);
+				setTasks(prev => {
+					const updatedTasks = prev.filter(t => t.id !== taskId);
+					taskService.saveTasks(updatedTasks);
+					return updatedTasks;
+				});
+			} catch (err) {
+				console.error('Error deleting task:', err);
+				setError('Failed to delete task');
+			} finally {
+				setIsLoading(false);
+				setIsQueueBusy(false);
+			}
+		});
+
+		return taskQueue;
+	}, []);
+
+	const refreshTasks = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -111,6 +133,7 @@ export const useTasks = (): TaskContextType => {
     toggleTask,
     deleteTask,
     refreshTasks,
-    loadTasks
+    loadTasks,
+	isBusy
   };
 };

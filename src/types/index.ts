@@ -15,6 +15,7 @@ export interface TaskContextType {
   deleteTask: (taskId: number) => Promise<void>;
   refreshTasks: () => Promise<void>;
   loadTasks: () => Promise<void>;
+  isBusy: boolean;
 }
 
 export interface TaskFormProps {
