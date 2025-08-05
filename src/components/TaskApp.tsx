@@ -34,6 +34,7 @@ const TaskApp = () => {
       <Header onRefresh={refreshTasks} />
       
       <TaskForm 
+        tasks={tasks}
         onAddTask={handleAddTask}
         isLoading={isLoading}
       />

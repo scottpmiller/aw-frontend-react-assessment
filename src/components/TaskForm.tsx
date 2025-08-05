@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
 import { TaskFormProps } from '../types';
 
-const TaskForm: React.FC<TaskFormProps> = ({ onAddTask, isLoading }) => {
+const TaskForm: React.FC<TaskFormProps> = ({ tasks, onAddTask, isLoading }) => {
   const [newTask, setNewTask] = useState<string>('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (newTask.trim()) {
+        const ifAlreadyExists = tasks.some(task => task.text.toLowerCase() === newTask.trim().toLowerCase());
+      if (ifAlreadyExists) {
+        alert('Task already exists!');
+        return;
+      }
       onAddTask(newTask.trim());
       setNewTask('');
     }

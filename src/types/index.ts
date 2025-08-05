@@ -18,6 +18,7 @@ export interface TaskContextType {
 }
 
 export interface TaskFormProps {
+  tasks: Task[];
   onAddTask: (taskText: string) => Promise<void>;
   isLoading: boolean;
 }
