@@ -7,7 +7,9 @@ import { STORAGE_KEYS } from '../constants';
 
 const STORAGE_KEY = STORAGE_KEYS.TASKS;
 
-// Default tasks for initial app state
+/**
+ * Default tasks for initial app state (unchanged).
+ */
 const getDefaultTasks = (): Task[] => [
   { id: 1, text: 'Review marketing campaign proposal', completed: false },
   { id: 2, text: 'Schedule team meeting for next week', completed: false },
@@ -16,63 +18,53 @@ const getDefaultTasks = (): Task[] => [
   { id: 5, text: 'Prepare presentation slides', completed: false }
 ];
 
+/**
+ * Monotonic numeric id — avoids same-ms collisions while keeping number type.
+ */
+let lastId = Date.now();
+const nextId = (): number => (lastId = Math.max(lastId + 1, Date.now()));
+
+/**
+ * Serialize storage writes so commits happen in trigger order.
+ * This prevents older snapshots from overwriting newer ones.
+ */
+let writeQ: Promise<void> = Promise.resolve();
+async function saveOrdered(tasks: Task[]): Promise<void> {
+  writeQ = writeQ.then(async () => {
+    await delayPatterns.short(); // keep simulated latency behavior
+    storageService.save(STORAGE_KEY, tasks);
+  });
+  return writeQ;
+}
+
 export const taskService = {
-  // Load tasks from storage
+  // Load current tasks (or defaults)
   async loadTasks(): Promise<Task[]> {
     await delayPatterns.short();
-    
-    let tasks = storageService.load(STORAGE_KEY);
-    
-    if (!tasks) {
-      // Check for legacy tasks without timezone key
-      tasks = storageService.loadLegacy(STORAGE_KEY);
-      
-      if (!tasks) {
-        tasks = getDefaultTasks();
-        storageService.save(STORAGE_KEY, tasks);
-      }
-    }
-    
+    const tasks = storageService.load(STORAGE_KEY);
+    if (!tasks) return getDefaultTasks();
     return tasks;
   },
 
-  // Save tasks to storage
-  async saveTasks(tasks: Task[]): Promise<boolean> {
+  // Create a task (id + timestamps generated here)
+  async addTask(rawText: string): Promise<Task> {
     await delayPatterns.short();
-    return storageService.save(STORAGE_KEY, tasks);
-  },
-
-  // Add a new task
-  async addTask(taskText: string): Promise<Task> {
-    const validation = validateTaskText(taskText);
+    const text = sanitizeTaskText(rawText);
+    const validation = validateTaskText(text);
     if (!validation.isValid) {
-      logger.warn('Task validation failed', { taskText, error: validation.error });
+      logger.error('Task validation failed', { error: validation.error });
       throw new Error(validation.error);
     }
-
-    await delayPatterns.medium();
-    
-    const sanitizedText = sanitizeTaskText(taskText);
-    const newTask = {
-      id: Date.now(),
-      text: sanitizedText,
-      completed: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    
-    logger.info('Task created', { taskId: newTask.id, text: sanitizedText });
-    return newTask;
+    const now = new Date().toISOString();
+    const task: Task = { id: nextId(), text, completed: false, createdAt: now, updatedAt: now };
+    logger.info('Task created', { taskId: task.id, text: task.text });
+    return task;
   },
 
-  // Update an existing task
-  async updateTask(_taskId: number, updates: Partial<Task>): Promise<Partial<Task> & { updatedAt: string }> {
-    await delayPatterns.medium();
-    
-    return {
-      ...updates,
-      updatedAt: new Date().toISOString()
-    };
+  // Return server-ish updates that callers merge optimistically
+  async updateTask(_taskId: number, _partial: Partial<Task>): Promise<Partial<Task>> {
+    await delayPatterns.short();
+    return { updatedAt: new Date().toISOString() };
   },
 
   // Delete a task
@@ -85,5 +77,10 @@ export const taskService = {
   async refreshTasks(): Promise<Task[]> {
     await delayPatterns.short();
     return storageService.load(STORAGE_KEY) || [];
+  },
+
+  // Ordered save used by the hook
+  async saveTasks(tasks: Task[]): Promise<void> {
+    return saveOrdered(tasks);
   }
 };
