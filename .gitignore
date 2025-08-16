@@ -1,6 +1,1 @@
 node_modules
-
-# Temporary reference files for Option A race condition fix
-option-a-functional-ordered-saves.patch
-src_hooks_useTasks.ts.new
-src_services_taskService.ts.new
