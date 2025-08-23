@@ -38,6 +38,7 @@ export interface TaskListProps {
 
 export interface HeaderProps {
   onRefresh: () => Promise<void>;
+  isLoading: boolean;
 }
 
 export interface LoadingIndicatorProps {

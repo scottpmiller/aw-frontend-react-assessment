@@ -35,7 +35,7 @@ export const useTasks = (): TaskContextType => {
       const updatedTasks = [...tasks, newTask];
       
       setTasks(updatedTasks);
-      taskService.saveTasks(updatedTasks);
+      await taskService.saveTasks(updatedTasks);
     } catch (err) {
       setError('Failed to add task');
       console.error('Error adding task:', err);
@@ -62,7 +62,7 @@ export const useTasks = (): TaskContextType => {
       );
       
       setTasks(updatedTasks);
-      taskService.saveTasks(updatedTasks);
+      await taskService.saveTasks(updatedTasks);
     } catch (err) {
       setError('Failed to update task');
       console.error('Error updating task:', err);
@@ -80,7 +80,7 @@ export const useTasks = (): TaskContextType => {
       const updatedTasks = tasks.filter(task => task.id !== taskId);
       
       setTasks(updatedTasks);
-      taskService.saveTasks(updatedTasks);
+      await taskService.saveTasks(updatedTasks);
     } catch (err) {
       setError('Failed to delete task');
       console.error('Error deleting task:', err);
