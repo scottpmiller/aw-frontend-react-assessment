@@ -30,64 +30,93 @@ export const useTasks = (): TaskContextType => {
     try {
       setIsLoading(true);
       setError(null);
-      
       const newTask = await taskService.addTask(taskText);
-      const updatedTasks = [...tasks, newTask];
       
-      setTasks(updatedTasks);
-      taskService.saveTasks(updatedTasks);
+      setTasks(currentTasks => {
+        const updatedTasks = [...currentTasks, newTask];
+        
+        // Save to storage with the fresh task list
+        taskService.saveTasks(updatedTasks);
+        return updatedTasks;
+      });
     } catch (err) {
       setError('Failed to add task');
       console.error('Error adding task:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [tasks]);
+  }, []);
 
   const toggleTask = useCallback(async (taskId: number) => {
     try {
       setIsLoading(true);
       setError(null);
       
-      const taskToUpdate = tasks.find(task => task.id === taskId);
-      if (!taskToUpdate) return;
+      setTasks(currentTasks => {
+        const taskToUpdate = currentTasks.find(task => task.id === taskId);
+        if (!taskToUpdate) {
+          return currentTasks;
+        }
 
-      const updates = await taskService.updateTask(taskId, {
-        ...taskToUpdate,
-        completed: !taskToUpdate.completed
+        // Create updated task with new completion state
+        const updatedTask = {
+          ...taskToUpdate,
+          completed: !taskToUpdate.completed,
+          updatedAt: new Date().toISOString()
+        };
+
+        const updatedTasks = currentTasks.map(task =>
+          task.id === taskId ? updatedTask : task
+        );
+        
+        // Save to storage with fresh task list
+        taskService.saveTasks(updatedTasks);
+        
+        // Async update service call (for any server sync later)
+        taskService.updateTask(taskId, updatedTask).catch(err => {
+          console.error('Error in background task update:', err);
+        });
+        
+        return updatedTasks;
       });
-
-      const updatedTasks = tasks.map(task =>
-        task.id === taskId ? { ...task, ...updates } : task
-      );
-      
-      setTasks(updatedTasks);
-      taskService.saveTasks(updatedTasks);
     } catch (err) {
       setError('Failed to update task');
       console.error('Error updating task:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [tasks]);
+  }, []);
 
   const deleteTask = useCallback(async (taskId: number) => {
     try {
       setIsLoading(true);
       setError(null);
       
-      await taskService.deleteTask(taskId);
-      const updatedTasks = tasks.filter(task => task.id !== taskId);
-      
-      setTasks(updatedTasks);
-      taskService.saveTasks(updatedTasks);
+      setTasks(currentTasks => {
+        const taskExists = currentTasks.find(task => task.id === taskId);
+        if (!taskExists) {
+          return currentTasks;
+        }
+
+        const updatedTasks = currentTasks.filter(task => task.id !== taskId);
+        
+        // Save to storage with fresh task list
+        taskService.saveTasks(updatedTasks);
+        
+        // Async delete service call (for any server sync later)
+        taskService.deleteTask(taskId).catch(err => {
+          console.error('Error in background task deletion:', err);
+        });
+        
+        return updatedTasks;
+      });
     } catch (err) {
       setError('Failed to delete task');
       console.error('Error deleting task:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [tasks]);
+  }, []);
 
   const refreshTasks = useCallback(async () => {
     try {
