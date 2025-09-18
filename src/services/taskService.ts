@@ -29,7 +29,6 @@ export const taskService = {
       
       if (!tasks) {
         tasks = getDefaultTasks();
-        storageService.save(STORAGE_KEY, tasks);
       }
     }
     
