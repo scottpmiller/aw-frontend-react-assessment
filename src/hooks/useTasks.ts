@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { APP_CONFIG } from '../constants';
 import { taskService } from '../services/taskService';
 import { Task, TaskContextType } from '../types';
 
@@ -6,6 +7,7 @@ export const useTasks = (): TaskContextType => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const hydratedRef = useRef<boolean>(false);
 
   // Load tasks on mount
   useEffect(() => {
@@ -18,6 +20,7 @@ export const useTasks = (): TaskContextType => {
       setError(null);
       const loadedTasks = await taskService.loadTasks();
       setTasks(loadedTasks);
+      hydratedRef.current = true;
     } catch (err) {
       setError('Failed to load tasks');
       console.error('Error loading tasks:', err);
@@ -32,44 +35,48 @@ export const useTasks = (): TaskContextType => {
       setError(null);
       
       const newTask = await taskService.addTask(taskText);
-      const updatedTasks = [...tasks, newTask];
-      
-      setTasks(updatedTasks);
-      taskService.saveTasks(updatedTasks);
+      setTasks(prev => {
+        const updatedTasks = [...prev, newTask];
+        // Ensure immediate persistence for critical operations
+        if (hydratedRef.current) {
+          taskService.saveTasks(updatedTasks);
+        }
+        return updatedTasks;
+      });
     } catch (err) {
       setError('Failed to add task');
       console.error('Error adding task:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [tasks]);
+  }, []);
 
   const toggleTask = useCallback(async (taskId: number) => {
     try {
       setIsLoading(true);
       setError(null);
       
-      const taskToUpdate = tasks.find(task => task.id === taskId);
-      if (!taskToUpdate) return;
-
-      const updates = await taskService.updateTask(taskId, {
-        ...taskToUpdate,
-        completed: !taskToUpdate.completed
+      setTasks(prev => {
+        const taskToUpdate = prev.find(task => task.id === taskId);
+        if (!taskToUpdate) return prev;
+        const updatedTasks = prev.map(task =>
+          task.id === taskId ? { ...task, completed: !task.completed } : task
+        );
+        // Ensure immediate persistence for critical operations
+        if (hydratedRef.current) {
+          taskService.saveTasks(updatedTasks);
+        }
+        return updatedTasks;
       });
-
-      const updatedTasks = tasks.map(task =>
-        task.id === taskId ? { ...task, ...updates } : task
-      );
-      
-      setTasks(updatedTasks);
-      taskService.saveTasks(updatedTasks);
+      // Update metadata asynchronously (e.g., updatedAt)
+      await taskService.updateTask(taskId, {});
     } catch (err) {
       setError('Failed to update task');
       console.error('Error updating task:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [tasks]);
+  }, []);
 
   const deleteTask = useCallback(async (taskId: number) => {
     try {
@@ -77,17 +84,21 @@ export const useTasks = (): TaskContextType => {
       setError(null);
       
       await taskService.deleteTask(taskId);
-      const updatedTasks = tasks.filter(task => task.id !== taskId);
-      
-      setTasks(updatedTasks);
-      taskService.saveTasks(updatedTasks);
+      setTasks(prev => {
+        const updatedTasks = prev.filter(task => task.id !== taskId);
+        // Ensure immediate persistence for critical operations
+        if (hydratedRef.current) {
+          taskService.saveTasks(updatedTasks);
+        }
+        return updatedTasks;
+      });
     } catch (err) {
       setError('Failed to delete task');
       console.error('Error deleting task:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [tasks]);
+  }, []);
 
   const refreshTasks = useCallback(async () => {
     try {
@@ -95,6 +106,7 @@ export const useTasks = (): TaskContextType => {
       setError(null);
       const refreshedTasks = await taskService.refreshTasks();
       setTasks(refreshedTasks);
+      hydratedRef.current = true;
     } catch (err) {
       setError('Failed to refresh tasks');
       console.error('Error refreshing tasks:', err);
@@ -102,6 +114,15 @@ export const useTasks = (): TaskContextType => {
       setIsLoading(false);
     }
   }, []);
+
+  // Persist tasks when state changes after hydration (debounced)
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+    const handle = setTimeout(() => {
+      taskService.saveTasks(tasks);
+    }, APP_CONFIG.AUTO_SAVE_DELAY);
+    return () => clearTimeout(handle);
+  }, [tasks]);
 
   return {
     tasks,
