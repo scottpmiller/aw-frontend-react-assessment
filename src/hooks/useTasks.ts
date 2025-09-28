@@ -32,10 +32,12 @@ export const useTasks = (): TaskContextType => {
       setError(null);
       
       const newTask = await taskService.addTask(taskText);
-      const updatedTasks = [...tasks, newTask];
       
-      setTasks(updatedTasks);
-      taskService.saveTasks(updatedTasks);
+      setTasks(prevTasks => {
+        const updatedTasks = [...prevTasks, newTask];
+        taskService.saveTasks(updatedTasks);
+        return updatedTasks;
+      });
     } catch (err) {
       setError('Failed to add task');
       console.error('Error adding task:', err);
@@ -49,20 +51,26 @@ export const useTasks = (): TaskContextType => {
       setIsLoading(true);
       setError(null);
       
-      const taskToUpdate = tasks.find(task => task.id === taskId);
-      if (!taskToUpdate) return;
+      setTasks(prevTasks => {
+        const taskToUpdate = prevTasks.find(task => task.id === taskId);
+        if (!taskToUpdate) return prevTasks;
 
-      const updates = await taskService.updateTask(taskId, {
-        ...taskToUpdate,
-        completed: !taskToUpdate.completed
+        const updatedTasks = prevTasks.map(task =>
+          task.id === taskId ? { ...task, completed: !task.completed } : task
+        );
+        
+        taskService.saveTasks(updatedTasks);
+        
+        taskService.updateTask(taskId, {
+          ...taskToUpdate,
+          completed: !taskToUpdate.completed
+        }).catch(err => {
+          console.error('Error updating task in service:', err);
+          setTasks(prevTasks);
+        });
+        
+        return updatedTasks;
       });
-
-      const updatedTasks = tasks.map(task =>
-        task.id === taskId ? { ...task, ...updates } : task
-      );
-      
-      setTasks(updatedTasks);
-      taskService.saveTasks(updatedTasks);
     } catch (err) {
       setError('Failed to update task');
       console.error('Error updating task:', err);
@@ -76,11 +84,17 @@ export const useTasks = (): TaskContextType => {
       setIsLoading(true);
       setError(null);
       
-      await taskService.deleteTask(taskId);
-      const updatedTasks = tasks.filter(task => task.id !== taskId);
-      
-      setTasks(updatedTasks);
-      taskService.saveTasks(updatedTasks);
+      setTasks(prevTasks => {
+        const updatedTasks = prevTasks.filter(task => task.id !== taskId);
+        
+        taskService.saveTasks(updatedTasks);
+        
+        taskService.deleteTask(taskId).catch(err => {
+          console.error('Error deleting task in service:', err);
+          setTasks(prevTasks);
+        });
+        return updatedTasks;
+      });
     } catch (err) {
       setError('Failed to delete task');
       console.error('Error deleting task:', err);
