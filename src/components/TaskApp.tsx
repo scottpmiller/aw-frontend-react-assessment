@@ -1,16 +1,18 @@
-import React from 'react';
-import { useTaskContext } from '../context/TaskContext';
-import { Header, TaskForm, TaskList, LoadingIndicator } from './index';
+import React from "react";
+import { useTaskContext } from "../context/TaskContext";
+import { Header, TaskForm, TaskList, LoadingIndicator } from "./index";
 
 const TaskApp = () => {
   const {
     tasks,
     isLoading,
+    isAdding,
+    updatingTaskIds,
     error,
     addTask,
     toggleTask,
     deleteTask,
-    refreshTasks
+    refreshTasks,
   } = useTaskContext();
 
   const handleAddTask = async (taskText: string) => {
@@ -32,23 +34,17 @@ const TaskApp = () => {
   return (
     <div className="app">
       <Header onRefresh={refreshTasks} />
-      
-      <TaskForm 
-        onAddTask={handleAddTask}
-        isLoading={isLoading}
-      />
-      
+
+      <TaskForm onAddTask={handleAddTask} isAdding={isAdding} />
+
       <TaskList
         tasks={tasks}
         onToggleTask={toggleTask}
         onDeleteTask={deleteTask}
-        isLoading={isLoading}
+        updatingTaskIds={updatingTaskIds}
       />
-      
-      <LoadingIndicator 
-        isLoading={isLoading}
-        message="Processing..."
-      />
+
+      <LoadingIndicator isLoading={isLoading} message="Processing..." />
     </div>
   );
 };

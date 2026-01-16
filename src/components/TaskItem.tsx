@@ -1,7 +1,12 @@
-import React from 'react';
-import { TaskItemProps } from '../types';
+import React from "react";
+import { TaskItemProps } from "../types";
 
-const TaskItem: React.FC<TaskItemProps> = ({ task, onToggle, onDelete, isLoading }) => {
+const TaskItem: React.FC<TaskItemProps> = ({
+  task,
+  onToggle,
+  onDelete,
+  isUpdating,
+}) => {
   const handleToggle = () => {
     onToggle(task.id);
   };
@@ -17,17 +22,24 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onToggle, onDelete, isLoading
         className="task-checkbox"
         checked={task.completed}
         onChange={handleToggle}
-        disabled={isLoading}
-        aria-label={`Mark "${task.text}" as ${task.completed ? 'incomplete' : 'complete'}`}
+        disabled={isUpdating}
+        aria-label={`Mark "${task.text}" as ${
+          task.completed ? "incomplete" : "complete"
+        }`}
       />
-      <span className={`task-text ${task.completed ? 'task-completed' : ''}`}>
+      <span className={`task-text ${task.completed ? "task-completed" : ""}`}>
         {task.text}
       </span>
       <div className="task-actions">
+        {isUpdating && (
+          <span className="task-spinner" aria-hidden="true">
+            <span className="loading-spinner"></span>
+          </span>
+        )}
         <button
           className="delete-button"
           onClick={handleDelete}
-          disabled={isLoading}
+          disabled={isUpdating}
           aria-label={`Delete task "${task.text}"`}
         >
           Delete
