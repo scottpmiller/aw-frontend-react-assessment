@@ -73,7 +73,7 @@ export const taskService = {
     _taskId: number,
     updates: Partial<Task>
   ): Promise<Partial<Task> & { updatedAt: string }> {
-    await delayPatterns.variable(5000, 7000);
+    await delayPatterns.medium();
 
     return {
       ...updates,
