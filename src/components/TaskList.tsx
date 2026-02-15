@@ -2,7 +2,12 @@ import React from 'react';
 import TaskItem from './TaskItem';
 import { TaskListProps } from '../types';
 
-const TaskList: React.FC<TaskListProps> = ({ tasks, onToggleTask, onDeleteTask, isLoading }) => {
+const TaskList: React.FC<TaskListProps> = ({
+  tasks,
+  onToggleTask,
+  onDeleteTask,
+  updatingTaskIds,
+}) => {
   if (tasks.length === 0) {
     return (
       <div className="task-list">
@@ -15,13 +20,13 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onToggleTask, onDeleteTask, 
 
   return (
     <div className="task-list">
-      {tasks.map(task => (
+      {tasks.map((task) => (
         <TaskItem
           key={task.id}
           task={task}
           onToggle={onToggleTask}
           onDelete={onDeleteTask}
-          isLoading={isLoading}
+          isUpdating={updatingTaskIds.has(task.id)}
         />
       ))}
     </div>

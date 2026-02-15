@@ -9,6 +9,8 @@ export interface Task {
 export interface TaskContextType {
   tasks: Task[];
   isLoading: boolean;
+  isAdding: boolean;
+  updatingTaskIds: Set<number>;
   error: string | null;
   addTask: (taskText: string) => Promise<void>;
   toggleTask: (taskId: number) => Promise<void>;
@@ -19,21 +21,21 @@ export interface TaskContextType {
 
 export interface TaskFormProps {
   onAddTask: (taskText: string) => Promise<void>;
-  isLoading: boolean;
+  isAdding: boolean;
 }
 
 export interface TaskItemProps {
   task: Task;
   onToggle: (taskId: number) => Promise<void>;
   onDelete: (taskId: number) => Promise<void>;
-  isLoading: boolean;
+  isUpdating: boolean;
 }
 
 export interface TaskListProps {
   tasks: Task[];
   onToggleTask: (taskId: number) => Promise<void>;
   onDeleteTask: (taskId: number) => Promise<void>;
-  isLoading: boolean;
+  updatingTaskIds: Set<number>;
 }
 
 export interface HeaderProps {

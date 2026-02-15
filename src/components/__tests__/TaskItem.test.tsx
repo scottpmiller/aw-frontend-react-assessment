@@ -16,7 +16,7 @@ const mockProps = {
   task: mockTask,
   onToggle: jest.fn(),
   onDelete: jest.fn(),
-  isLoading: false
+  isUpdating: false
 };
 
 describe('TaskItem', () => {
@@ -55,8 +55,8 @@ describe('TaskItem', () => {
     expect(mockProps.onDelete).toHaveBeenCalledWith(1);
   });
 
-  it('disables controls when loading', () => {
-    render(<TaskItem {...mockProps} isLoading={true} />);
+  it('disables controls when updating', () => {
+    render(<TaskItem {...mockProps} isUpdating={true} />);
     
     const checkbox = screen.getByRole('checkbox');
     const deleteButton = screen.getByRole('button', { name: /delete/i });
