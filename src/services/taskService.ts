@@ -36,9 +36,8 @@ export const taskService = {
     return tasks;
   },
 
-  // Save tasks to storage
-  async saveTasks(tasks: Task[]): Promise<boolean> {
-    await delayPatterns.short();
+  // Save tasks to storage (synchronous -- localStorage doesn't need a delay)
+  saveTasks(tasks: Task[]): boolean {
     return storageService.save(STORAGE_KEY, tasks);
   },
 
