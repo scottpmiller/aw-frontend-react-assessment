@@ -2,7 +2,7 @@ import React from 'react';
 import TaskItem from './TaskItem';
 import { TaskListProps } from '../types';
 
-const TaskList: React.FC<TaskListProps> = ({ tasks, onToggleTask, onDeleteTask, isLoading }) => {
+const TaskList: React.FC<TaskListProps> = ({ tasks, onToggleTask, onDeleteTask }) => {
   if (tasks.length === 0) {
     return (
       <div className="task-list">
@@ -21,7 +21,6 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onToggleTask, onDeleteTask, 
           task={task}
           onToggle={onToggleTask}
           onDelete={onDeleteTask}
-          isLoading={isLoading}
         />
       ))}
     </div>

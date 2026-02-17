@@ -8,13 +8,16 @@ import { STORAGE_KEYS } from '../constants';
 const STORAGE_KEY = STORAGE_KEYS.TASKS;
 
 // Default tasks for initial app state
-const getDefaultTasks = (): Task[] => [
-  { id: 1, text: 'Review marketing campaign proposal', completed: false },
-  { id: 2, text: 'Schedule team meeting for next week', completed: false },
-  { id: 3, text: 'Update project timeline document', completed: true },
-  { id: 4, text: 'Send follow-up email to client', completed: false },
-  { id: 5, text: 'Prepare presentation slides', completed: false }
-];
+const getDefaultTasks = (): Task[] => {
+  const now = new Date().toISOString();
+  return [
+    { id: 1, text: 'Review marketing campaign proposal', completed: false, createdAt: now, updatedAt: now },
+    { id: 2, text: 'Schedule team meeting for next week', completed: false, createdAt: now, updatedAt: now },
+    { id: 3, text: 'Update project timeline document', completed: true, createdAt: now, updatedAt: now },
+    { id: 4, text: 'Send follow-up email to client', completed: false, createdAt: now, updatedAt: now },
+    { id: 5, text: 'Prepare presentation slides', completed: false, createdAt: now, updatedAt: now }
+  ];
+};
 
 export const taskService = {
   // Load tasks from storage
