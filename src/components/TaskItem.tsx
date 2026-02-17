@@ -3,7 +3,7 @@ import { TaskItemProps } from '../types';
 
 const TaskItem: React.FC<TaskItemProps> = ({ task, onToggle, onDelete, isLoading }) => {
   const handleToggle = () => {
-    onToggle(task.id);
+    onToggle(task.id, !task.completed);
   };
 
   const handleDelete = () => {
