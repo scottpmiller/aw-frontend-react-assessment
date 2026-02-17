@@ -39,7 +39,7 @@ describe('useTasks race conditions', () => {
     const { result } = renderHook(() => useTasks());
 
     await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
+      expect(result.current.isFetching).toBe(false);
     });
 
     await act(async () => {
@@ -73,7 +73,7 @@ describe('useTasks race conditions', () => {
     const { result } = renderHook(() => useTasks());
 
     await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
+      expect(result.current.isFetching).toBe(false);
     });
 
     expect(result.current.tasks).toHaveLength(0);

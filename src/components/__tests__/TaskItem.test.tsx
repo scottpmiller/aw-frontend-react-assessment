@@ -15,8 +15,7 @@ const mockTask: Task = {
 const mockProps = {
   task: mockTask,
   onToggle: jest.fn(),
-  onDelete: jest.fn(),
-  isLoading: false
+  onDelete: jest.fn()
 };
 
 describe('TaskItem', () => {
@@ -43,7 +42,7 @@ describe('TaskItem', () => {
     const checkbox = screen.getByRole('checkbox');
     fireEvent.click(checkbox);
     
-    expect(mockProps.onToggle).toHaveBeenCalledWith(1);
+    expect(mockProps.onToggle).toHaveBeenCalledWith(1, true);
   });
 
   it('calls onDelete when delete button is clicked', () => {
@@ -55,8 +54,20 @@ describe('TaskItem', () => {
     expect(mockProps.onDelete).toHaveBeenCalledWith(1);
   });
 
-  it('disables controls when loading', () => {
-    render(<TaskItem {...mockProps} isLoading={true} />);
+  it('disables controls when task is toggling', () => {
+    const togglingTask = { ...mockTask, isToggling: true };
+    render(<TaskItem {...mockProps} task={togglingTask} />);
+    
+    const checkbox = screen.getByRole('checkbox');
+    const deleteButton = screen.getByRole('button', { name: /delete/i });
+    
+    expect(checkbox).toBeDisabled();
+    expect(deleteButton).toBeDisabled();
+  });
+
+  it('disables controls when task is deleting', () => {
+    const deletingTask = { ...mockTask, isDeleting: true };
+    render(<TaskItem {...mockProps} task={deletingTask} />);
     
     const checkbox = screen.getByRole('checkbox');
     const deleteButton = screen.getByRole('button', { name: /delete/i });

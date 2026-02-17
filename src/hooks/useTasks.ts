@@ -5,7 +5,8 @@ import { Task, TaskContextType } from '../types';
 export const useTasks = (): TaskContextType => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isFetching, setIsFetching] = useState<boolean>(true);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isAdding, setIsAdding] = useState<boolean>(false);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   // Updates storage
@@ -15,6 +16,7 @@ export const useTasks = (): TaskContextType => {
 
   const loadTasks = useCallback(async () => {
     try {
+      setIsFetching(true);
       setError(null);
       const loadedTasks = await taskService.loadTasks();
       setTasks(loadedTasks);
@@ -33,7 +35,7 @@ export const useTasks = (): TaskContextType => {
 
   const addTask = useCallback(async (taskText: string) => {
     try {
-      setIsLoading(true);
+      setIsAdding(true);
       setError(null);
       const newTask = await taskService.addTask(taskText);
       setTasks(tasks => [...tasks, newTask]);
@@ -41,43 +43,59 @@ export const useTasks = (): TaskContextType => {
       setError('Failed to add task');
       console.error('Error adding task:', err);
     } finally {
-      setIsLoading(false);
+      setIsAdding(false);
     }
   }, []);
 
   const toggleTask = useCallback(async (taskId: number, completed: boolean) => {
     try {
-      setIsLoading(true);
+      // Set isToggling to true for this specific task
+      setTasks(prev => prev.map(task => 
+        task.id === taskId ? { ...task, isToggling: true } : task
+      ));
       setError(null);
+      
       const updates = await taskService.updateTask(taskId, { completed });
-      setTasks(tasks => tasks.map(task =>
-        task.id === taskId ? { ...task, ...updates } : task
+      
+      // Update the task and set isToggling to false
+      setTasks(prev => prev.map(task => 
+        task.id === taskId ? { ...task, ...updates, isToggling: false } : task
       ));
     } catch (err) {
       setError('Failed to update task');
       console.error('Error updating task:', err);
-    } finally {
-      setIsLoading(false);
+      // Reset isToggling on error
+      setTasks(prev => prev.map(task => 
+        task.id === taskId ? { ...task, isToggling: false } : task
+      ));
     }
   }, []);
 
   const deleteTask = useCallback(async (taskId: number) => {
     try {
-      setIsLoading(true);
+      // Set isDeleting to true for this specific task
+      setTasks(prev => prev.map(task => 
+        task.id === taskId ? { ...task, isDeleting: true } : task
+      ));
       setError(null);
+      
       await taskService.deleteTask(taskId);
-      setTasks(tasks => tasks.filter(task => task.id !== taskId));
+      
+      // Remove the task from state after successful deletion
+      setTasks(prev => prev.filter(task => task.id !== taskId));
     } catch (err) {
       setError('Failed to delete task');
       console.error('Error deleting task:', err);
-    } finally {
-      setIsLoading(false);
+      // Reset isDeleting on error
+      setTasks(prev => prev.map(task => 
+        task.id === taskId ? { ...task, isDeleting: false } : task
+      ));
     }
   }, []);
 
   const refreshTasks = useCallback(async () => {
     try {
-      setIsLoading(true);
+      setIsRefreshing(true);
       setError(null);
       const refreshedTasks = await taskService.refreshTasks();
       setTasks(refreshedTasks);
@@ -85,13 +103,15 @@ export const useTasks = (): TaskContextType => {
       setError('Failed to refresh tasks');
       console.error('Error refreshing tasks:', err);
     } finally {
-      setIsLoading(false);
+      setIsRefreshing(false);
     }
   }, []);
 
   return {
     tasks,
-    isLoading: isFetching || isLoading,
+    isFetching,
+    isAdding,
+    isRefreshing,
     error,
     addTask,
     toggleTask,

@@ -1,7 +1,8 @@
 import React from 'react';
 import { TaskItemProps } from '../types';
 
-const TaskItem: React.FC<TaskItemProps> = ({ task, onToggle, onDelete, isLoading }) => {
+const TaskItem: React.FC<TaskItemProps> = ({ task, onToggle, onDelete }) => {
+  const isLoading = task.isToggling || task.isDeleting;
   const handleToggle = () => {
     onToggle(task.id, !task.completed);
   };
